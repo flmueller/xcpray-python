@@ -24,6 +24,18 @@ settings (Linux `~/.config/xcpray/`, Windows `%APPDATA%\xcpray\`); a script auth
 it. Writes of a script go the same way as typed values: the limits of the A2L apply, and they
 appear in the log and in the recording, marked "(script)".
 
+### From another computer
+
+File > Settings > Script interface > "Allow access from other computers" makes XCP-Ray listen on
+all interfaces. Copy the token shown there and connect with it:
+
+```python
+ray = xcpray.connect(host="192.168.1.20", token="…")    # or XCPRAY_TOKEN
+```
+
+The connection is not encrypted (token and values in plain text): use it only in trusted
+networks.
+
 ## Example
 
 ```python
