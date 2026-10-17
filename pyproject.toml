@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "xcpray"
+version = "0.1.0"
+description = "Python client of the script interface of XCP-Ray: read and write ECU values over XCP from scripts"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [{name = "Florian Müller"}]
+requires-python = ">=3.8"
+keywords = ["xcp", "asam", "measurement", "calibration", "ecu", "automotive", "test automation"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Software Development :: Testing",
+]
+
+[project.urls]
+Homepage = "https://github.com/flmueller/xcpray-python"
+
+[tool.setuptools.packages.find]
+where = ["src"]
