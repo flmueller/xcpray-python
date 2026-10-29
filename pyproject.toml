@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "xcpray"
-version = "0.1.0"
+version = "0.2.0"
 description = "Python client of the script interface of XCP-Ray: read and write ECU values over XCP from scripts"
 readme = "README.md"
 license = {text = "MIT"}

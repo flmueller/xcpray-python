@@ -2,7 +2,7 @@
 
 Python client of the script interface of **XCP-Ray**, a measurement and calibration tool for
 ECUs with XCP (CAN, CAN FD, UDP/IP, serial). With it a script reads and writes ECU values
-while XCP-Ray is connected, starts and stops measurements and puts markers into the
+while XCP-Ray is connected, reads and sets signals of CAN and LIN buses (DBC, LDF, restbus simulation), starts and stops measurements and puts markers into the
 recording, for example to play a stimulus during a test.
 
 The library is MIT licensed and needs nothing but Python 3.8 or newer. XCP-Ray itself is free
@@ -55,16 +55,34 @@ with xcpray.connect() as ray:
 `examples/stimulus.py` plays a list of (time, signal, value) during a measurement. Checks are
 plain Python, e.g. with `assert` or pytest.
 
+### Buses (DBC, LDF) and the restbus simulation
+
+Signals of a CAN bus with a DBC or a LIN bus with an LDF are named `BUS:Message.Signal`.
+`read()` decodes the last frame received on the bus (also without a measurement, while the bus
+is connected); `read_full()` adds its age in seconds. `write()` sets the value of the restbus
+simulation: it is sent while its frame is active (checked in the restbus display) and the
+simulation runs. Needs XCP-Ray 0.36 or newer.
+
+```python
+with xcpray.connect() as ray:
+    ray.restbus_start("BODY")
+    ray.write("BODY:BCM_Wiper.WiperMode", "fast")       # a text of the value table, or a number
+    ray.wait(0.5)
+    print(ray.read("BODY:Wiper_Status.WiperPosition"))  # decoded from the last frame
+    ray.restbus_stop("BODY")
+```
+
 ## API
 
 | Call | |
 | --- | --- |
 | `connect(host="127.0.0.1", port=None, token=None, token_file=None)` | port: `XCPRAY_PORT` or 5591; token: `XCPRAY_TOKEN`, the file `XCPRAY_TOKEN_FILE` or the default file |
 | `info()` | version, project, measuring, ECUs with their state |
-| `list_signals(ecu=None)` | name (`ECU:NAME`), kind, unit, min, max, writable, texts |
-| `read(*signals)` | current values from the ECU, physical; one signal: the value, several: a dict |
+| `list_signals(ecu=None)` | name (`ECU:NAME`, `BUS:Message.Signal`), kind, unit, min, max, writable, texts |
+| `read(*signals)` | current values, physical (ECU: read from it; bus: the last frame); one signal: the value, several: a dict |
 | `read_texts(*signals)` | the values as shown in XCP-Ray (texts of enumerations) |
-| `write(signal, value)` | writes a parameter, returns the value read back |
+| `write(signal, value)` | writes a parameter, returns the value read back; a bus signal: the value of the restbus simulation |
+| `restbus_start(bus)`, `restbus_stop(bus)` | starts / stops the restbus simulation of a bus |
 | `start_measurement()`, `stop_measurement()` | as F5 / F6 in XCP-Ray |
 | `marker(text)` | an event in the running recording |
 | `describe()` | the methods of the interface with their parameters (JSON schema) |

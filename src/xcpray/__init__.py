@@ -10,6 +10,9 @@ into the file ``api-token`` next to its settings, and offers the methods as Pyth
         ray.write("ENGINE:sim_amplitude", 20)
         print(ray.read("ENGINE:sim_sine", "ENGINE:sim_amplitude"))
 
+Signals of a bus with a DBC (CAN) or LDF (LIN) are named "BUS:Message.Signal": read() decodes
+the last frame received, write() sets the value of the restbus simulation.
+
 No dependencies besides the Python standard library (3.8 or newer).
 """
 
@@ -19,7 +22,7 @@ import socket
 import sys
 import time
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 __all__ = ["connect", "Client", "XcpRayError", "default_token_file", "DEFAULT_PORT"]
 
 DEFAULT_PORT = 5591
@@ -76,12 +79,14 @@ class Client:
         return self.call("describe")
 
     def list_signals(self, ecu=None):
-        """Measurements and parameters: dicts with name ("ECU:NAME"), kind, unit, min, max, writable, texts."""
+        """Measurements and parameters ("ECU:NAME") and bus signals ("BUS:Message.Signal", kind
+        "bus_signal", with frame and cycle_ms): dicts with name, kind, unit, min, max, writable, texts."""
         return self.call("list_signals", **({"ecu": ecu} if ecu else {}))
 
     def read(self, *signals):
-        """Current values from the ECU: {name: value}; a single name gives the value itself.
-        Enumerations give their raw value; read_texts() gives the texts."""
+        """Current values: {name: value}; a single name gives the value itself. ECU signals are
+        read from the ECU, bus signals decoded from the last frame on the bus (read_full() gives
+        its age in s). Enumerations give their raw value; read_texts() gives the texts."""
         result = self.read_full(*signals)
         values = {}
         for r in result:
@@ -97,13 +102,24 @@ class Client:
         return texts[signals[0]] if len(signals) == 1 else texts
 
     def read_full(self, *signals):
-        """The complete answer of XCP-Ray: one dict per signal with value, text, unit or error."""
+        """The complete answer of XCP-Ray: one dict per signal with value, text, unit or error;
+        bus signals also with age (s since the frame) and tx (sent by XCP-Ray)."""
         return self.call("read", signals=list(signals))
 
     def write(self, signal, value):
         """Writes a parameter (a number in physical units, or a text of an enumeration) and returns
-        the value read back. The limits of the A2L apply: outside them it raises XcpRayError."""
+        the value read back. The limits of the A2L apply: outside them it raises XcpRayError.
+        A bus signal sets the value of the restbus simulation (limited to what the signal can
+        hold) and returns it; it is sent while its frame is active and the simulation runs."""
         return self.call("write", signal=signal, value=value).get("value")
+
+    def restbus_start(self, bus):
+        """Starts the restbus simulation of a bus (connects it if needed); True if it runs."""
+        return self.call("restbus_start", bus=bus)["running"]
+
+    def restbus_stop(self, bus):
+        """Stops the restbus simulation of a bus; False once it has stopped."""
+        return self.call("restbus_stop", bus=bus)["running"]
 
     def start_measurement(self):
         """Starts the measurement and the recording; True if it measures."""
